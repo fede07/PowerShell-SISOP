@@ -88,6 +88,42 @@ class Nota {
 
 }
 
+class Materia{
+    [int]$IDMateria
+    [String]$DescMateria
+    [int]$DepartamentoMat
+
+    Materia([int]$IDMateria_, [string]$DescMateria_, [int]$DepartamentoMat){
+        $this.IDMateria = $IDMateria_
+        $this.DescMateria = $DescMateria_
+        $this.DepartamentoMat = $DepartamentoMat
+    }
+
+    [string]printMateria(){
+        return "$($this.IDMateria) | $($this.DescMateria) | $($this.DepartamentoMat)"
+    }
+
+}
+
+class MateriaStats{
+    [int]$IDMateria
+    [string]$nombreMat
+    [int]$FINALES
+    [int]$RECURSAN
+    [int]$ABANDONAN
+    [int]$PROMOCIONAN
+
+    MateriaStats([int]$IDMateria_, [string]$nombreMat_, [int]$FINALES_, [int]$RECURSAN_, [int]$ABANDONAN_, [int]$PROMOCIONAN_){
+        $this.IDMateria = $IDMateria_
+        $this.nombreMat = $nombreMat_
+        $this.FINALES = $FINALES_
+        $this.RECURSAN = $RECURSAN_
+        $this.ABANDONAN = $ABANDONAN_
+        $this.PROMOCIONAN = $PROMOCIONAN_
+    }
+
+}   
+
 
 
 Write-Host "Iniciando"
@@ -106,15 +142,15 @@ foreach ($lineaM in $lineasMaterias ) {
         $IDMateria = ($lineaM -Split {$_ -eq "|"})[0]
         $DescMateria = ($lineaM -Split {$_ -eq "|"})[1]
         $DepartamentoMat = ($lineaM -Split {$_ -eq "|"})[2]
-        $DatosMateria = $DescMateria, $DepartamentoMat
+        
 
         if(($IDMateria -match "^\d+$") -And ($DepartamentoMat -match "^\d+$")){
             if(!$materias.ContainsKey($IDMateria)){
+                $DatosMateria = [Materia]::new($IDMateria, $DescMateria, $DepartamentoMat)
                 $materias.Add($IDMateria, $DatosMateria)
-                $CONTENIDODEPARTAMENTOSARCH+="$lineaM" 
-                Write-Host "Materia con ID $IDMateria agregada"
-
-                Write-Host "Materia: $IDMateria; Datos: $DatosMateria"
+                
+                # Write-Host "Materia con ID $IDMateria agregada"
+                # Write-Host "Materia: $IDMateria; Datos: $($DatosMateria.printMateria())"
             }
         }
     }
@@ -124,7 +160,7 @@ if($materias.Count -eq 0){
     Write-Host "El archivo $rutaMaterias no contiene datos válidos."
 }else{
     #Get-Content $CONTENIDODEPARTAMENTOSARCH | Sort-Object
-    $resTemp = @()
+    $notasAlumTemp = @()
     Write-Host "Entro al if"
     foreach ($lineaN in $lineasNotas) {
         $DNIAlum = ($lineaN -split {$_ -eq "|"})[0]
@@ -136,22 +172,81 @@ if($materias.Count -eq 0){
             $Final = ($lineaN -split {$_ -eq "|"})[5]
             
             $nota = [Nota]::new($DNIAlum, $IDMatAlum, $Parcial1, $Parcial2, $Recu, $Final)
-            $resTemp+= $nota
+            $notasAlumTemp+= $nota
         }
     } 
 
-    $resTemp = $resTemp | Sort-Object -Property IDMatAlum
+    $notasAlumTemp = $notasAlumTemp | Sort-Object -Property IDMatAlum
+
+    # foreach ($notaA in $notasAlumTemp) {
+    #     $notaA.printNota()
+    #     Write-Output "SEPARADOR"
+    # }
 
     $FINALES = 0
     $RECURSAN = 0
     $ABANDONAN = 0
     $PROMOCIONAN = 0
 
-    $materiaAnterior = $resTemp[0].IDMatAlum
+    $materiaAnterior = $notasAlumTemp[0].IDMatAlum
 
-    # foreach ($temp in $resTemp) {
-        
-    # }
+    $materiasStats =@{}
+
+    foreach ($temp in $notasAlumTemp) {
+        # Write-Output "Materia anterior: $materiaAnterior, Materia Actual: $($temp.IDMateria)"
+        if($materiaAnterior -ne $temp.IDMatAlum){ #Cambio de ID, reseteo materia
+            # Write-Output "Materia a agregar al mapa: $materiaAnterior"
+            $materia = [MateriaStats]::new($temp.IDMatAlum, $materias.($temp.IDMatAlum).$DescMateria, $FINALES, $RECURSAN, $ABANDONAN, $PROMOCIONAN) 
+            $materiasStats.Add($materia.IDMateria, $materia)
+            $FINALES = 0
+            $RECURSAN = 0
+            $ABANDONAN = 0
+            $PROMOCIONAN = 0
+            $materiaAnterior = $temp.IDMatAlum
+        }
+
+        $nota1 = 0
+        $nota2 = 0
+
+        if($temp.Parcial1 -gt 0){
+            $nota = $temp.Parcial1
+        }
+        if($temp.Parcial2 -gt 0){
+            $nota = $temp.Parcial2
+        }
+        if($temp.Recu -gt 0){
+            if($nota1 -gt $nota2){
+                $nota2 = $temp.Recu
+            }else{
+                $nota1 = $temp.Recu
+            }
+        }
+
+        if( (($nota1 -eq 0) -or ($nota2 -eq 0)) -and $temp.Final -eq 0){
+
+        }elseif ( (($nota1 -lt 7) -or ($nota2 -lt 7)) -and (($nota1 -gt 3) -and ($nota2 -gt 3))) {
+            if($temp.Final -ne 0){
+                $FINALES++
+            }else{
+                if($temp.Final -lt 3){
+                    $RECURSAN++
+                }
+            }
+        }elseif(($nota1 -gt 6) -and ($nota2 -gt 6)){
+            $PROMOCIONAN++
+        }elseif(($nota1 -eq 0) -or ($nota2 -eq 0)){
+            $ABANDONAN++
+        }else{
+            $RECURSAN++
+        }
+    }
+    
+    $materia = [MateriaStats]::new($materiaAnterior, $materias.($materiaAnterior).$DescMateria, $FINALES, $RECURSAN, $ABANDONAN, $PROMOCIONAN) 
+    $materiasStats.Add($materia.IDMateria, $materia)
+
+    if($materiasStats.Count -eq 0){
+        Write-Output "El archivo $rutaNotas no contiene datos válidos"
+    }
 
 }
     
