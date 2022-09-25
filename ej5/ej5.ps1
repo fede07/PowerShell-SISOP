@@ -22,15 +22,22 @@
 
 <#
 .SYNOPSIS
-    A short description of your script.
+    Ejercicio 5 - APL 2
 .DESCRIPTION
-    A longer description of your script.
-.PARAMETER <-silent>
-    First parameter is -silent. It will do Collection Bootstrap silently.  
-.PARAMETER <action>
-    Second parameter is action. Action could be either bootstrap or join
+    Un programa que toma un archivo de notas y un archivo de materias. 
+    Devuelve un archivo .json con los datos de materias por departamentos 
+.PARAMETER rutaNotas
+    Primer parametro, ruta del archivo que contiene las notas 
+.PARAMETER rutaMaterias
+    Segundo parametro, ruta del archivo que contiene las materias
+.OUTPUTS
+    Archivo resultado.json
 .EXAMPLE
-    Example
+    .\ej5.ps1 -rutaNotas [ruta] -rutaMaterias [ruta] 
+.EXAMPLE
+    .\ej5.ps1 -rutaNotas .\notas.txt -rutaMaterias .\materias.txt
+.EXAMPLE
+    .\ej5.ps1 .\notas.txt .\materias.txt
 #>
 
 Param (
