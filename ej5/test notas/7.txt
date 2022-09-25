@@ -1,0 +1,6 @@
+DNI|IdMateria|PrimerParcial|SegundoParcial|Recuperatorio|Final
+42736222|1|4|4||
+39873564|3|9|10||
+40873544|5|2|2||
+44441212|7|6|6|6|2
+66666666|9|10|6|10|

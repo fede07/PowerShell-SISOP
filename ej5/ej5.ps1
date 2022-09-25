@@ -1,4 +1,4 @@
-# =========================== Encabezado ========================
+﻿# =========================== Encabezado ========================
 
 # Nombre del Script: ej5.ps1
 # Número de APL: 2
@@ -25,13 +25,15 @@
     Ejercicio 5 - APL 2
 .DESCRIPTION
     Un programa que toma un archivo de notas y un archivo de materias. 
-    Devuelve un archivo .json con los datos de materias por departamentos 
+    Devuelve un archivo .json con las estadisticas de materias por departamentos 
 .PARAMETER rutaNotas
     Primer parametro, ruta del archivo que contiene las notas 
 .PARAMETER rutaMaterias
     Segundo parametro, ruta del archivo que contiene las materias
+.INPUTS
+    Ninguno.
 .OUTPUTS
-    Archivo resultado.json
+    Se crea un archivo "resultado.json" con los las estadisticas de cada materia.
 .EXAMPLE
     .\ej5.ps1 -rutaNotas [ruta] -rutaMaterias [ruta] 
 .EXAMPLE
@@ -47,6 +49,9 @@ Param (
         if( -Not (Test-Path -Path $_) ){
             throw "Error: La ruta '$_' no existe."
         }
+        if( -Not (Test-Path -Path $_ -PathType Leaf )){
+            throw "Error: Error: La ruta especificada en la opcion -rutaNotas no es un archivo."
+        }
         return $true
     })]
     [String] $rutaNotas,
@@ -56,6 +61,9 @@ Param (
     [ValidateScript({
         if( -Not (Test-Path -Path $_) ){
             throw "Error: La ruta '$_' no existe."
+        }
+        if( -Not (Test-Path -Path $_ -PathType Leaf )){
+            throw "Error: Error: La ruta especificada en la opcion -rutaMaterias no es un archivo."
         }
         return $true
     })]
@@ -157,13 +165,15 @@ $auxMaterias =@{}
 # Obteniendo datos materias 
 # "
 
+$warning = 0
+
 foreach ($lineaM in $archivoMaterias) {
     if($lineaM){ #si no esta vacia:
         $IDMateria = ($lineaM -Split {$_ -eq "|"})[0] #Obtengo el contenido de la columna ID
         $DescMateria = ($lineaM -Split {$_ -eq "|"})[1] #Obtengo el contenido de la columna DESCRIPCION
         $DepartamentoMat = ($lineaM -Split {$_ -eq "|"})[2] #Obtengo el contenido de la columna DEPARTAMENTO
         
-        if(($IDMateria -match "^\d+$") -And ($DepartamentoMat -match "^\d+$")){ #Si las columnas ID y Departamento son validos:
+        if(($IDMateria -match "^\d+$") -And ($DepartamentoMat -match "^\d+$") -and ($DescMateria)){ #Si las columnas ID y Departamento son validos:
             #Si no esta en el hash table de todas las materias:
             #if(!$listaMaterias.Contains($IDMateria)){ 
             if(!$auxMaterias.Contains($IDMateria)){
@@ -181,7 +191,11 @@ foreach ($lineaM in $archivoMaterias) {
 
                 $listaMaterias += $materia
                 $auxMaterias.Add($IDMateria, $materiaDatos)
+            }else{
+                Write-Output "Advertencia: El ID $IDMateria ya esta en uso, solo se usara la primera ocurrencia"
             }
+        }else{
+            $warning = 1
         }
     }
 }
@@ -198,6 +212,10 @@ $listaMaterias = $listaMaterias | Sort-Object -Property DepartamentoMat
 # "
 # $auxMaterias.GetEnumerator() | Sort-Object -Property Key
 
+if($warning -and ($listaMaterias.Count -gt 0)){
+    Write-Output "Advertencia: Existen datos invalidos en el archivo $rutaMaterias"
+}
+
 if($listaMaterias.Count -eq 0){ #Si la tabla de materias esta vacia, el archivo es invalido
     Write-Host "El archivo $rutaMaterias no contiene datos válidos."
 }else{
@@ -211,24 +229,28 @@ if($listaMaterias.Count -eq 0){ #Si la tabla de materias esta vacia, el archivo 
 
     #por cada linea en el archivo Notas
     foreach ($lineaN in $archivoNotas) { 
-        $DNIAlum = ($lineaN -split {$_ -eq "|"})[0] 
-        $IDMatAlum = ($lineaN -split {$_ -eq "|"})[1]
-        #veo si en la tabla de materias existe la materia del alumno actual.
-        if($auxMaterias.ContainsKey($IDMatAlum)){
-            $Parcial1 = ($lineaN -split {$_ -eq "|"})[2]
-            $Parcial2 = ($lineaN -split {$_ -eq "|"})[3]
-            $Recu = ($lineaN -split {$_ -eq "|"})[4]
-            $Final = ($lineaN -split {$_ -eq "|"})[5]
-            
-            #"$listaNotas" contiene cada linea del archivo notas convertida en un objeto "nota"
-            $nota = [Nota]::new($DNIAlum, $IDMatAlum, $Parcial1, $Parcial2, $Recu, $Final)
-            $listaNotas+= $nota
+        if($lineaN -match "^[1-9][0-9]{7}\|[0-9]+\|(([1-9]|10)?\|){3}([1-9]|10)?$" ){
+            $DNIAlum = ($lineaN -split {$_ -eq "|"})[0] 
+            $IDMatAlum = ($lineaN -split {$_ -eq "|"})[1]
+            #veo si en la tabla de materias existe la materia del alumno actual.
+            if($auxMaterias.ContainsKey($IDMatAlum)){
+                $Parcial1 = ($lineaN -split {$_ -eq "|"})[2]
+                $Parcial2 = ($lineaN -split {$_ -eq "|"})[3]
+                $Recu = ($lineaN -split {$_ -eq "|"})[4]
+                $Final = ($lineaN -split {$_ -eq "|"})[5]
 
-            #si llega aca los numeros son validos, pero podrian no tener sentido
-		    #ej: nota final sin notas de parciales
-
+                #"$listaNotas" contiene cada linea del archivo notas convertida en un objeto "nota"
+                $nota = [Nota]::new($DNIAlum, $IDMatAlum, $Parcial1, $Parcial2, $Recu, $Final)
+                $listaNotas+= $nota            
+                #si llega aca los numeros son validos, pero podrian no tener sentido
+                #ej: nota final sin notas de parciales
+            }
         }
     } 
+
+    if($listaNotas.Count -eq 0){
+        Write-Output "El archivo $rutaNotas no contiene datos válidos"
+    }else{
 
     $listaNotas = $listaNotas | Sort-Object -Property IDMatAlum #ordeno la lista de notas segun el ID de materia
 
@@ -268,26 +290,7 @@ if($listaMaterias.Count -eq 0){ #Si la tabla de materias esta vacia, el archivo 
             $depto = [string]$auxMaterias[$aux]['Departamento']
 
             $materiaProcesada = [MateriaStats]::new($idMat, $desc, $depto, $FINALES, $RECURSAN, $ABANDONAN, $PROMOCIONAN)
-            # $materiaProcesada.printDatos()
             $mapaAlumnos += $materiaProcesada
-
-            # $aux = "$FINALES $RECURSAN $ABANDONAN $PROMOCIONAN"
-            # $mapaAlumnos[$materiaAnterior] = [string]$aux
-
-            # $aux = [string]$temp.IDMatAlum
-            # $idMat = [string]$materias[$aux]['ID']
-            # $desc = [string]$materias[$aux]['Descripcion']
-            # $depto = [string]$materias[$aux]['Departamento']
-            # $materiaNotas = @{
-            #     id_materia = $idMat; 
-            #     descripcion = $desc;
-            #     departamento = $depto;
-            #     final = $FINALES;
-            #     recursan = $RECURSAN;
-            #     abandonan = $ABANDONAN;
-            #     promocionan = $PROMOCIONAN
-            # }
-            #$mapaAlumnos.Add($idMat, $materiaNotas)
 
             $FINALES = 0
             $RECURSAN = 0
@@ -370,18 +373,20 @@ if($listaMaterias.Count -eq 0){ #Si la tabla de materias esta vacia, el archivo 
     }else{
 
         $listaMaterias = $listaMaterias | Sort-Object -Property DepartamentoMat
-        $mapaAlumnos = $mapaAlumnos | Sort-Object -Property IDMateria
+        $mapaAlumnos = $mapaAlumnos | Sort-Object -Property IDDep, IDMateria
 
-        # Write-Output "Lista materias:
-        # "
-        # $listaMaterias
-        # Write-Output "Mapa alumnos: 
-        # "
-        # #$mapaAlumnos
+        Write-Output "
+        Lista materias:
+        "
+        $listaMaterias
+        Write-Output "
+        Mapa alumnos: 
+        "
+        #$mapaAlumnos
 
-        # foreach ($item in $mapaAlumnos) {
-        #     $item.printDatos()
-        # }
+        foreach ($item in $mapaAlumnos) {
+            $item.printDatos()
+        }
         
 
         $departamentoAnt = -1
@@ -392,65 +397,55 @@ if($listaMaterias.Count -eq 0){ #Si la tabla de materias esta vacia, el archivo 
         $cont=0
         foreach ($materiaP in $listaMaterias) {
             
+            #Linea de mapaAlumnos
             $datosMateria = $mapaAlumnos[$cont]
-            $idMapa = $mapaAlumnos[$cont].IDMateria
+            #$idDepMapa = $datosMateria.IDDep
+            $idMatMapa = $datosMateria.IDMateria
 
-            $idDep=$materiaP.IDMateria
+            #linea listaMaterias
+            $idDep=$materiaP.DepartamentoMat
+            $idMat=$materiaP.IDMateria
 
-                if($primeraVez -eq 0){
-                    if($idDep -ne $departamentoAnt){
-                        $json+="
-                    }"
-                    }else{
-                        $json+="
-                    },"
-                    }
-                }
+#             Write-Output "
+# Departamento anterior: $departamentoAnt
+# idDep = $idDep; idMat = $idMat 
+# idDepMapa = $idDepMapa; idMatMapa = $idMatMapa           
+# materia: $($datosMateria.nombreMat)"
+
+            if($primeraVez -eq 0){
                 if($idDep -ne $departamentoAnt){
-                    if($primeraVez -eq 0){
-                        $json+="            
-                ]
-            },"
-                    }
-                    $primeraVez=0
-                    $json+="        
-            {
-                `"id`": $idDep,
-                `"notas`": ["
-                }
-
-                if($idMapa -eq $idDep){
-
-                    $departamentoAnt = $idDep
-                    if($idDep -eq $departamentoAnt){
-                        $idMat=$datosMateria.IDMateria
-                        $descr=$datosMateria.nombreMat
-                        $final=$datosMateria.FINALES
-                        $rec=$datosMateria.RECURSAN
-                        $ab=$datosMateria.ABANDONAN
-                        $prom=$datosMateria.PROMOCIONAN
-
-                        $json+="
-                {
-                    `"id_materia`": $idMat,
-                    `"descripcion`": `"$descr`",
-                    `"final`": `"$final`",
-                    `"recursan`": `"$rec`",
-                    `"abandonaron`": `"$ab`",
-                    `"promocionaron`": `"$prom`""
-                    }
-                    $cont++
+                    $json+="
+                }"
                 }else{
-                    $departamentoAnt = $idDep
-                    if($idDep -eq $departamentoAnt){
-                        $idMat=$materiaP.IDMateria
-                        $descr=$materiaP.DescMateria
-                        $final=0
-                        $rec=0
-                        $ab=0
-                        $prom=0
+                    $json+="
+                },"
+                }
+            }
+            if($idDep -ne $departamentoAnt){
+                if($primeraVez -eq 0){
+                    $json+="            
+            ]
+        },"
+                }
+                $primeraVez=0
+                $json+="        
+        {
+            `"id`": $idDep,
+            `"notas`": ["
+                }
 
-                        $json+="
+            if($idMatMapa -eq $idMat){
+                # Write-Output "Escribiendo materia $($materiaP.DescMateria)"
+                $departamentoAnt = $idDep
+                #if($idDep -eq $departamentoAnt){
+                    $idMat=$materiaP.IDMateria
+                    $descr=$materiaP.DescMateria
+                    $final=$datosMateria.FINALES
+                    $rec=$datosMateria.RECURSAN
+                    $ab=$datosMateria.ABANDONAN
+                    $prom=$datosMateria.PROMOCIONAN
+
+                    $json+="
                 {
                     `"id_materia`": $idMat,
                     `"descripcion`": `"$descr`",
@@ -458,8 +453,31 @@ if($listaMaterias.Count -eq 0){ #Si la tabla de materias esta vacia, el archivo 
                     `"recursan`": `"$rec`",
                     `"abandonaron`": `"$ab`",
                     `"promocionaron`": `"$prom`""
-                    }
-                }
+                #}
+                $cont++
+
+            }else{
+                $departamentoAnt = $idDep
+                #if($idDep -eq $departamentoAnt){
+                    $idMat=$materiaP.IDMateria
+                    $descr=$materiaP.DescMateria
+                    $final=0
+                    $rec=0
+                    $ab=0
+                    $prom=0
+
+                    # Write-Output "MATERIA VACIA: $descr"
+
+                    $json+="
+                {
+                    `"id_materia`": $idMat,
+                    `"descripcion`": `"$descr`",
+                    `"final`": `"$final`",
+                    `"recursan`": `"$rec`",
+                    `"abandonaron`": `"$ab`",
+                    `"promocionaron`": `"$prom`""
+                #}
+            }
                 
             $aux=$datosMateria
             
@@ -481,10 +499,11 @@ if($listaMaterias.Count -eq 0){ #Si la tabla de materias esta vacia, el archivo 
         }
 
         $json | Out-File -FilePath ./resultado.json
-        Write-Output "Archivo resultado creado correctamente"
+        
+        Write-Output "Archivo resultado.json creado"
         
     }
-
+    }
 }
     
 #---------------------------------------------------------------------#

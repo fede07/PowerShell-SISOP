@@ -27,10 +27,10 @@
                 {
                     "id_materia": 2,
                     "descripcion": "Agricultura",
-                    "final": "",
-                    "recursan": "",
-                    "abandonaron": "",
-                    "promocionaron": ""                
+                    "final": "0",
+                    "recursan": "0",
+                    "abandonaron": "0",
+                    "promocionaron": "0"                
                 },
                 {
                     "id_materia": 9,
