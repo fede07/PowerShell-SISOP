@@ -1,6 +1,4 @@
-IdMateria|Descripcion|Departamento
-1|Programacion|1
-3|Fisica|2
-5|Natacion|2
-6|Matematica|4
-7|Cocina|5
+﻿IdMateria|Descripcion|Departamento
+1|Sistemas Operativos|1
+2|Programación 1|1
+3|Derecho 1|2

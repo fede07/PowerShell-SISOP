@@ -26,18 +26,18 @@
 .DESCRIPTION
     Un programa que toma un archivo de notas y un archivo de materias. 
     Devuelve un archivo .json con las estadisticas de materias por departamentos 
-.PARAMETER rutaNotas
+.PARAMETER notas
     Primer parametro, ruta del archivo que contiene las notas 
-.PARAMETER rutaMaterias
+.PARAMETER materias
     Segundo parametro, ruta del archivo que contiene las materias
 .INPUTS
     Ninguno.
 .OUTPUTS
     Se crea un archivo "resultado.json" con los las estadisticas de cada materia.
 .EXAMPLE
-    .\ej5.ps1 -rutaNotas [ruta] -rutaMaterias [ruta] 
+    .\ej5.ps1 -notas [ruta] -rutaMaterias [ruta] 
 .EXAMPLE
-    .\ej5.ps1 -rutaNotas .\notas.txt -rutaMaterias .\materias.txt
+    .\ej5.ps1 -notas .\notas.txt -rutaMaterias .\materias.txt
 .EXAMPLE
     .\ej5.ps1 .\notas.txt .\materias.txt
 #>
@@ -50,11 +50,11 @@ Param (
             throw "Error: La ruta '$_' no existe."
         }
         if( -Not (Test-Path -Path $_ -PathType Leaf )){
-            throw "Error: Error: La ruta especificada en la opcion -rutaNotas no es un archivo."
+            throw "Error: Error: La ruta especificada en la opcion -notas no es un archivo."
         }
         return $true
     })]
-    [String] $rutaNotas,
+    [String] $notas,
 
     [Parameter(Mandatory=$true)]
     [ValidateNotNullOrEmpty()]
@@ -67,7 +67,7 @@ Param (
         }
         return $true
     })]
-    [String] $rutaMaterias
+    [String] $materias
 )
 
 class Nota {
@@ -146,13 +146,13 @@ class MateriaStats{
 
 Write-Host "Iniciando"
 
-$rutaNotas = Resolve-Path $rutaNotas
-$rutaMaterias = Resolve-Path $rutaMaterias
+$notas = Resolve-Path $notas
+$materias = Resolve-Path $materias
 
 #obtengo los datos del archivo notas, skipeo la primera linea
-$archivoNotas = Get-Content $rutaNotas | Select-Object -Skip 1 
+$archivoNotas = Get-Content $notas | Select-Object -Skip 1 
 #obtengo los datos del archivo materias, skipeo la primera linea
-$archivoMaterias = Get-Content $rutaMaterias | Select-Object -Skip 1
+$archivoMaterias = Get-Content $materias | Select-Object -Skip 1
 
 $listaMaterias =@()
 $auxMaterias =@{}
@@ -213,11 +213,11 @@ $listaMaterias = $listaMaterias | Sort-Object -Property DepartamentoMat
 # $auxMaterias.GetEnumerator() | Sort-Object -Property Key
 
 if($warning -and ($listaMaterias.Count -gt 0)){
-    Write-Output "Advertencia: Existen datos invalidos en el archivo $rutaMaterias"
+    Write-Output "Advertencia: Existen datos invalidos en el archivo $materias"
 }
 
 if($listaMaterias.Count -eq 0){ #Si la tabla de materias esta vacia, el archivo es invalido
-    Write-Host "El archivo $rutaMaterias no contiene datos válidos."
+    Write-Host "El archivo $materias no contiene datos válidos."
 }else{
    
     #Get-Content $CONTENIDODEPARTAMENTOSARCH | Sort-Object
@@ -249,7 +249,7 @@ if($listaMaterias.Count -eq 0){ #Si la tabla de materias esta vacia, el archivo 
     } 
 
     if($listaNotas.Count -eq 0){
-        Write-Output "El archivo $rutaNotas no contiene datos válidos"
+        Write-Output "El archivo $notas no contiene datos válidos"
     }else{
 
     $listaNotas = $listaNotas | Sort-Object -Property IDMatAlum #ordeno la lista de notas segun el ID de materia
@@ -369,24 +369,24 @@ if($listaMaterias.Count -eq 0){ #Si la tabla de materias esta vacia, el archivo 
     }
 
     if($mapaAlumnos.Count -eq 0){
-        Write-Output "El archivo $rutaNotas no contiene datos válidos"
+        Write-Output "El archivo $notas no contiene datos válidos"
     }else{
 
         $listaMaterias = $listaMaterias | Sort-Object -Property DepartamentoMat
         $mapaAlumnos = $mapaAlumnos | Sort-Object -Property IDDep, IDMateria
 
-        Write-Output "
-        Lista materias:
-        "
-        $listaMaterias
-        Write-Output "
-        Mapa alumnos: 
-        "
-        #$mapaAlumnos
+        # Write-Output "
+        # Lista materias:
+        # "
+        # $listaMaterias
+        # Write-Output "
+        # Mapa alumnos: 
+        # "
+        # #$mapaAlumnos
 
-        foreach ($item in $mapaAlumnos) {
-            $item.printDatos()
-        }
+        # foreach ($item in $mapaAlumnos) {
+        #     $item.printDatos()
+        # }
         
 
         $departamentoAnt = -1
